@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Object Animation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #000;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1;
+            color: white;
+        }
+        input, button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="text" id="promptInput" placeholder="Enter your prompt">
+        <button onclick="updateAnimation()">Generar</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let object = null; // Variable to hold the current 3D object
+        let rotationSpeed = 0.01; // Default rotation speed
+
+        // Initialize Three.js
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        function createObject(geometry, color) {
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (object) {
+                object.rotation.x += rotationSpeed;
+                object.rotation.y += rotationSpeed;
+            }
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        function parsePrompt(prompt) {
+            const lowerPrompt = prompt.toLowerCase();
+
+            // Default values
+            let shape = 'cube';
+            let color = '#ffffff';
+            let speed = 0.01;
+
+            // Shape parsing
+            if (lowerPrompt.includes('cuadrado') || lowerPrompt.includes('cubo')) {
+                shape = 'cube';
+            } else if (lowerPrompt.includes('esfera')) {
+                shape = 'sphere';
+            } else if (lowerPrompt.includes('cilindro')) {
+                shape = 'cylinder';
+            }
+
+            // Color parsing
+            const colorMap = {
+                'rojo': '#ff0000',
+                'verde': '#00ff00',
+                'azul': '#0000ff',
+                'amarillo': '#ffff00',
+                'blanco': '#ffffff',
+                'negro': '#000000'
+            };
+            for (const [colorName, hex] of Object.entries(colorMap)) {
+                if (lowerPrompt.includes(colorName)) {
+                    color = hex;
+                    break;
+                }
+            }
+
+            // Speed parsing
+            const speedMatch = lowerPrompt.match(/velocidad (\d+(\.\d+)?)/);
+            if (speedMatch) {
+                speed = parseFloat(speedMatch[1]);
+            }
+
+            return { shape, color, speed };
+        }
+
+        // Make updateAnimation accessible globally
+        window.updateAnimation = function() {
+            const prompt = document.getElementById('promptInput').value;
+            const { shape, color, speed } = parsePrompt(prompt);
+
+            // Remove the previous object
+            if (object) {
+                scene.remove(object);
+                object.geometry.dispose(); // Dispose of geometry
+                object.material.dispose(); // Dispose of material
+            }
+
+            // Create new object based on shape type
+            switch (shape) {
+                case 'cube':
+                    object = createObject(new THREE.BoxGeometry(), color);
+                    break;
+                case 'sphere':
+                    object = createObject(new THREE.SphereGeometry(1, 32, 32), color);
+                    break;
+                case 'cylinder':
+                    object = createObject(new THREE.CylinderGeometry(1, 1, 2, 32), color);
+                    break;
+                default:
+                    console.error('Unknown shape:', shape);
+                    break;
+            }
+
+            rotationSpeed = speed;
+        };
+    </script>
+</body>
+</html>
